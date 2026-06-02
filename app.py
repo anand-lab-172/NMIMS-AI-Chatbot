@@ -1,6 +1,14 @@
 import streamlit as st
 import time
 
+if not os.path.exists("chroma_db"):
+
+    with st.spinner("Creating Vector DB..."):
+
+        subprocess.run(
+            ["python", "ingest.py"]
+        )
+        
 from src.retriever import retrieve_and_rerank
 
 from src.llm import (
