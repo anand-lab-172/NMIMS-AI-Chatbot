@@ -617,9 +617,11 @@ Question:
                     )
 
                     page = doc.metadata.get(
-                        "page",
-                        "N/A"
+                        "page"
                     )
+                    
+                    if page is None:
+                        page = "N/A"
 
                     st.markdown(
                         f"### Chunk {i+1}"
