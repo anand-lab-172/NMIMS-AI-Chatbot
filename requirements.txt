@@ -5,12 +5,12 @@ langchain-text-splitters==0.3.8
 langchain-chroma==0.2.4
 langchain-huggingface==0.1.2
 
-chromadb>=1.0.9
+chromadb==0.5.5
 
-google-genai
+google-generativeai==0.8.5
 
 pypdf
-sentence-transformers
+sentence-transformers==3.0.1
 streamlit
 python-dotenv
 tqdm
