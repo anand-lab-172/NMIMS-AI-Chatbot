@@ -1,0 +1,16 @@
+langchain==0.3.25
+langchain-community==0.3.24
+langchain-core==0.3.63
+langchain-text-splitters==0.3.8
+langchain-chroma==0.2.4
+langchain-huggingface==0.1.2
+
+chromadb>=1.0.9
+
+google-genai
+
+pypdf
+sentence-transformers
+streamlit
+python-dotenv
+tqdm
