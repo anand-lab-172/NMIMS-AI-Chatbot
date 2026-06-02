@@ -166,7 +166,8 @@ python-3.11
 
 # 📸 Screenshots
 
-Add screenshots here.
+<img width="2851" height="1393" alt="image" src="https://github.com/user-attachments/assets/e5c8be4c-b5b0-4311-a659-b6342ec87eef" />
+
 
 ---
 
