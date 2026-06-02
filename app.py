@@ -82,7 +82,6 @@ with st.sidebar:
         gemini_model = st.selectbox(
             "Choose Gemini Model",
             [
-                "gemini-2.5-flash",
                 "gemini-1.5-flash",
                 "gemini-1.5-pro"
             ]
@@ -96,8 +95,7 @@ with st.sidebar:
             "Choose ChatGPT Model",
             [
                 "gpt-4o-mini",
-                "gpt-4o",
-                "gpt-4.1-mini"
+                "gpt-4o"
             ]
         )
 
@@ -109,15 +107,12 @@ with st.sidebar:
             "Choose Groq Model",
             [
                 "llama-3.1-8b-instant",
-                "llama-3.3-70b-versatile",
-                "meta-llama/llama-4-scout-17b-16e-instruct"
+                "llama-3.3-70b-versatile"
             ],
             index=0
         )
 
     st.markdown("---")
-
-    # ---------------- AI MODES ---------------- #
 
     mode = st.selectbox(
         "🧠 Choose AI Mode",
@@ -132,8 +127,6 @@ with st.sidebar:
     )
 
     st.markdown("---")
-
-    # ---------------- NOTES ---------------- #
 
     st.subheader("📝 AI Notes")
 
@@ -284,14 +277,9 @@ if generate_notes:
                 "Generate comprehensive MBA notes"
             )
 
-            docs = [
-                doc
-                for rerank_score, vector_score, doc in results
-            ]
-
             context = "\n\n".join([
                 doc.page_content
-                for doc in docs
+                for doc in results
             ])
 
             notes_prompt = generate_mba_notes(
@@ -338,7 +326,9 @@ if generate_notes:
 
 # ---------------- USER INPUT ---------------- #
 
-query = st.chat_input("Ask your MBA question...")
+query = st.chat_input(
+    "Ask your MBA question..."
+)
 
 if query:
 
@@ -356,16 +346,11 @@ if query:
 
     results = retrieve_and_rerank(query)
 
-    docs = [
-        doc
-        for rerank_score, vector_score, doc in results
-    ]
-
     unique_chunks = []
 
     seen = set()
 
-    for doc in docs:
+    for doc in results:
 
         content = doc.page_content.strip()
 
@@ -392,77 +377,43 @@ if query:
 
         system_prompt = """
 You are an expert MBA professor.
-
 Explain concepts clearly.
-
-Use:
-- examples
-- structured explanations
-- business context
-
-Teach step-by-step.
+Use examples and business context.
 """
 
     elif mode == "Case Study Solver":
 
         system_prompt = """
 You are a top-tier business consultant.
-
-Provide:
-- issue analysis
-- SWOT
-- recommendations
-- business impact
-
-Be analytical and strategic.
+Provide SWOT and recommendations.
 """
 
     elif mode == "Interview Prep":
 
         system_prompt = """
 You are an MBA placement interviewer.
-
-Provide:
-- concise explanations
-- professional responses
-- practical insights
+Provide concise professional responses.
 """
 
     elif mode == "Research Analyst":
 
         system_prompt = """
 You are a business research analyst.
-
-Provide:
-- detailed analysis
-- insights
-- comparisons
-- strategic findings
+Provide detailed analysis and insights.
 """
 
     elif mode == "Exam Mode":
 
         system_prompt = """
 You are an MBA exam assistant.
-
-Provide:
-- short
-- precise
-- direct answers
-
-Use bullet points.
+Provide short and direct answers.
 """
 
     else:
 
         system_prompt = """
 You are a corporate strategy consultant.
-
-Provide:
-- executive-level thinking
-- strategic recommendations
-- operational insights
-- risk analysis
+Provide executive-level strategic insights.
 """
 
     final_prompt = f"""
@@ -471,19 +422,14 @@ Previous Conversation:
 
 {system_prompt}
 
-IMPORTANT:
-
-1. Use provided context as primary source
-2. Use previous conversation for continuity
-3. If context is insufficient, clearly say so
-4. Avoid hallucinations
-
 Context:
 {context}
 
 Question:
 {query}
 """
+
+    active_model = "Unknown"
 
     with st.chat_message("assistant"):
 
@@ -492,8 +438,6 @@ Question:
             start_time = time.time()
 
             try:
-
-                status.info("🧠 Analyzing business concepts...")
 
                 if engine == "Gemini":
 
@@ -528,26 +472,15 @@ Question:
 
             end_time = time.time()
 
-            response_time = end_time - start_time
-
-            if response_time >= 60:
-
-                minutes = int(response_time // 60)
-
-                seconds = round(response_time % 60, 2)
-
-                formatted_time = f"{minutes}m {seconds} sec"
-
-            else:
-
-                formatted_time = f"{round(response_time, 2)} sec"
-
-            status.info("📊 Evaluating response quality...")
+            response_time = round(
+                end_time - start_time,
+                2
+            )
 
             st.markdown(response)
 
             st.caption(
-                f"⏱️ Response Time: {formatted_time}"
+                f"⏱️ Response Time: {response_time} sec"
             )
 
             llm_score = evaluate_answer(
@@ -562,8 +495,6 @@ Question:
                 results,
                 llm_score
             )
-
-            status.success("✅ Response Ready")
 
             if confidence >= 80:
 
@@ -585,13 +516,11 @@ Question:
 
             st.progress(confidence / 100)
 
-            with st.expander("📚 Retrieved Context"):
+            with st.expander(
+                "📚 Retrieved Context"
+            ):
 
-                for i, (
-                    rerank_score,
-                    vector_score,
-                    doc
-                ) in enumerate(results):
+                for i, doc in enumerate(results):
 
                     source = doc.metadata.get(
                         "source",
@@ -610,13 +539,6 @@ Question:
                     st.caption(
                         f"📄 Source: {source} | "
                         f"📑 Page: {page}"
-                    )
-
-                    st.caption(
-                        f"🎯 Reranker: "
-                        f"{round(float(rerank_score), 3)} | "
-                        f"📏 Vector: "
-                        f"{round(float(vector_score), 3)}"
                     )
 
                     st.write(
