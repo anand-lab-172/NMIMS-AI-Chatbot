@@ -1,12 +1,24 @@
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-
 import os
 
+from langchain_community.document_loaders import PyPDFLoader
+
+from langchain.text_splitter import (
+    RecursiveCharacterTextSplitter
+)
+
+from langchain_community.vectorstores import (
+    Chroma
+)
+
+from langchain_community.embeddings import (
+    HuggingFaceEmbeddings
+)
+
 DATA_PATH = "data"
+
 CHROMA_PATH = "chroma_db"
+
+# ---------------- EMBEDDINGS ---------------- #
 
 embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -14,7 +26,7 @@ embedding_model = HuggingFaceEmbeddings(
 
 all_docs = []
 
-# ---------------- LOAD PDFs ---------------- #
+# ---------------- LOAD PDFS ---------------- #
 
 for file in os.listdir(DATA_PATH):
 
@@ -25,18 +37,19 @@ for file in os.listdir(DATA_PATH):
             file
         )
 
-        loader = PyPDFLoader(pdf_path)
+        loader = PyPDFLoader(
+            pdf_path
+        )
 
         documents = loader.load()
 
-        # ADD SOURCE + PAGE
-
         for doc in documents:
+
+            # SOURCE
 
             doc.metadata["source"] = file
 
-            # page already exists
-            # make it human readable
+            # PAGE NUMBER
 
             if "page" in doc.metadata:
 
@@ -44,20 +57,24 @@ for file in os.listdir(DATA_PATH):
                     int(doc.metadata["page"]) + 1
                 )
 
+            else:
+
+                doc.metadata["page"] = "N/A"
+
         all_docs.extend(documents)
 
-# ---------------- SPLIT ---------------- #
+# ---------------- SPLITTER ---------------- #
 
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=700,
-    chunk_overlap=100
+    chunk_size=1000,
+    chunk_overlap=200
 )
 
 chunks = text_splitter.split_documents(
     all_docs
 )
 
-# ---------------- CREATE DB ---------------- #
+# ---------------- CREATE VECTOR DB ---------------- #
 
 vectorstore = Chroma.from_documents(
     documents=chunks,
@@ -67,4 +84,6 @@ vectorstore = Chroma.from_documents(
 
 vectorstore.persist()
 
-print("✅ Chroma DB Created Successfully")
+print(
+    "✅ Chroma DB Created Successfully"
+)
