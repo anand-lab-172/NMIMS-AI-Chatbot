@@ -1,4 +1,4 @@
-```python id="jlwm26"
+
 import os
 
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
@@ -153,4 +153,4 @@ def retrieve_and_rerank(query, top_k=6):
         print("Retriever Error:", str(e))
 
         return []
-```
+
