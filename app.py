@@ -22,13 +22,22 @@ st.set_page_config(
 
 # ---------------- CREATE VECTOR DB ---------------- #
 
-if not os.path.exists("chroma_db"):
+# ---------------- CREATE VECTOR DB ---------------- #
+
+if not os.path.exists("chroma_db/chroma.sqlite3"):
 
     with st.spinner("📚 Creating Vector Database..."):
 
-        subprocess.run(
-            ["python", "ingest.py"]
-        )
+        result = subprocess.run(
+            ["python", "src/ingest.py"],
+            capture_output=True,
+            text=True)
+
+        st.write(result.stdout)
+
+        if result.stderr:
+
+            st.error(result.stderr)
 
 # ---------------- CSS ---------------- #
 
