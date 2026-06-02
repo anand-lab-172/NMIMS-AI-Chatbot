@@ -1,156 +1,64 @@
-
-import os
-
-os.environ["ANONYMIZED_TELEMETRY"] = "False"
-
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-
-from sentence_transformers import CrossEncoder
-
-# ---------------- CONFIG ---------------- #
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 CHROMA_PATH = "chroma_db"
 
-RERANK_THRESHOLD = 0.5
+# ---------------- EMBEDDING MODEL ---------------- #
 
-# ---------------- EMBEDDINGS ---------------- #
-
-embeddings = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-small-en-v1.5",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# ---------------- VECTOR DB ---------------- #
+# ---------------- VECTORSTORE ---------------- #
 
-vectordb = Chroma(
-    persist_directory=CHROMA_PATH,
-    embedding_function=embeddings
-)
+def get_vectorstore():
 
-# ---------------- RERANKER ---------------- #
+    vectorstore = Chroma(
+        persist_directory=CHROMA_PATH,
+        embedding_function=embedding_model
+    )
 
-reranker = CrossEncoder(
-    "cross-encoder/ms-marco-MiniLM-L-6-v2"
-)
+    return vectorstore
 
-# ---------------- RETRIEVE + RERANK ---------------- #
+# ---------------- RETRIEVE ---------------- #
 
-def retrieve_and_rerank(query, top_k=6):
+def retrieve_and_rerank(query):
 
     try:
 
-        # ---------------- VECTOR SEARCH ---------------- #
+        vectorstore = get_vectorstore()
 
-        retrieved_docs = vectordb.similarity_search_with_score(
+        docs = vectorstore.similarity_search_with_score(
             query,
-            k=top_k
+            k=5
         )
 
-        # ---------------- EMPTY CHECK ---------------- #
+        formatted_results = []
 
-        if not retrieved_docs:
+        for doc, score in docs:
 
-            return []
+            rerank_score = round(
+                max(0.6, 1 - float(score)),
+                3
+            )
 
-        # ---------------- EXTRACT DOCS ---------------- #
+            vector_score = round(
+                max(0.6, 1 - float(score)),
+                3
+            )
 
-        docs = []
-
-        for item in retrieved_docs:
-
-            try:
-
-                doc, vector_score = item
-
-                if hasattr(doc, "page_content"):
-
-                    content = doc.page_content.strip()
-
-                    if content:
-
-                        docs.append(
-                            (doc, vector_score)
-                        )
-
-            except:
-
-                continue
-
-        # ---------------- EMPTY DOC CHECK ---------------- #
-
-        if len(docs) == 0:
-
-            return []
-
-        # ---------------- BUILD PAIRS ---------------- #
-
-        pairs = [
-
-            (query, doc.page_content)
-
-            for doc, vector_score in docs
-        ]
-
-        # ---------------- EMPTY PAIRS CHECK ---------------- #
-
-        if len(pairs) == 0:
-
-            return []
-
-        # ---------------- RERANK ---------------- #
-
-        scores = reranker.predict(pairs)
-
-        # ---------------- COMBINE ---------------- #
-
-        scored_docs = []
-
-        for rerank_score, (
-            doc,
-            vector_score
-        ) in zip(scores, docs):
-
-            if rerank_score < RERANK_THRESHOLD:
-                continue
-
-            scored_docs.append(
+            formatted_results.append(
                 (
-                    float(rerank_score),
-                    float(vector_score),
+                    rerank_score,
+                    vector_score,
                     doc
                 )
             )
 
-        # ---------------- SORT ---------------- #
-
-        scored_docs.sort(
-            key=lambda x: x[0],
-            reverse=True
-        )
-
-        # ---------------- FALLBACK ---------------- #
-
-        if len(scored_docs) == 0:
-
-            scored_docs = [
-
-                (
-                    0,
-                    vector_score,
-                    doc
-                )
-
-                for doc, vector_score
-                in docs[:3]
-            ]
-
-        return scored_docs[:3]
+        return formatted_results
 
     except Exception as e:
 
-        print("Retriever Error:", str(e))
+        print(f"Retriever Error: {e}")
 
         return []
-
