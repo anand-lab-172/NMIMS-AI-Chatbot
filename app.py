@@ -11,7 +11,7 @@ from src.llm import (
 )
 
 st.set_page_config(
-    page_title="MBA AI Chatbot",
+    page_title="NMIMS AI Chatbot",
     page_icon="🎓",
     layout="wide"
 )
@@ -51,12 +51,12 @@ st.markdown("""
 # ---------------- HEADER ---------------- #
 
 st.markdown(
-    '<div class="title">🎓 MBA AI Chatbot</div>',
+    '<div class="title">🎓 NMIMS AI Chatbot</div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
-    '<div class="subtitle">Multi-LLM RAG-based MBA PDF Chatbot</div>',
+    '<div class="subtitle">Multi-LLM RAG-based NMIMS PDF Chatbot</div>',
     unsafe_allow_html=True
 )
 
