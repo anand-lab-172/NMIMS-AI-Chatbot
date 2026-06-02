@@ -4,9 +4,10 @@ import os
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 from langchain_chroma import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from sentence_transformers import CrossEncoder
+
 
 # ---------------- CONFIG ---------------- #
 
