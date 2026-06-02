@@ -12,7 +12,6 @@ sentence-transformers==3.0.1
 google-genai
 openai
 groq
-ollama
 
 pypdf
 python-dotenv
