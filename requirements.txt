@@ -1,16 +1,15 @@
-langchain==0.3.25
-langchain-community==0.3.24
-langchain-core==0.3.63
-langchain-text-splitters==0.3.8
-langchain-chroma==0.2.4
-langchain-huggingface==0.1.2
+streamlit==1.35.0
+
+langchain==0.2.11
+langchain-community==0.2.10
+langchain-core==0.2.23
+langchain-text-splitters==0.2.2
 
 chromadb==0.5.5
-
-google-generativeai==0.8.5
+sentence-transformers==3.0.1
 
 pypdf
-sentence-transformers==3.0.1
-streamlit
 python-dotenv
 tqdm
+
+google-generativeai==0.7.2
