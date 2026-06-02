@@ -4,7 +4,6 @@ import time
 from src.retriever import retrieve_and_rerank
 
 from src.llm import (
-    ask_local_llm,
     ask_gemini,
     ask_chatgpt,
     ask_groq
@@ -69,11 +68,11 @@ with st.sidebar:
     engine = st.selectbox(
         "Choose AI Engine",
         [
-            "Local LLM",
+            "Groq",
             "Gemini",
-            "ChatGPT",
-            "Groq"
-        ]
+            "ChatGPT"
+        ],
+        index=0
     )
 
     # ---------------- GEMINI ---------------- #
@@ -84,8 +83,8 @@ with st.sidebar:
             "Choose Gemini Model",
             [
                 "gemini-2.5-flash",
-                "gemini-2.5-pro",
-                "gemini-2.0-flash"
+                "gemini-1.5-flash",
+                "gemini-1.5-pro"
             ]
         )
 
@@ -104,30 +103,16 @@ with st.sidebar:
 
     # ---------------- GROQ ---------------- #
 
-    elif engine == "Groq":
+    else:
 
         groq_model = st.selectbox(
             "Choose Groq Model",
             [
-                "llama-3.3-70b-versatile",
                 "llama-3.1-8b-instant",
+                "llama-3.3-70b-versatile",
                 "meta-llama/llama-4-scout-17b-16e-instruct"
-            ]
-        )
-
-    # ---------------- LOCAL ---------------- #
-
-    else:
-
-        selected_model = st.selectbox(
-            "Choose Local Model",
-            [
-                "phi3:mini",
-                "mistral",
-                "gemma2:2b",
-                "qwen2.5:3b",
-                "llama3"
-            ]
+            ],
+            index=0
         )
 
     st.markdown("---")
@@ -239,14 +224,7 @@ Return ONLY a number between 1 and 100.
 
     try:
 
-        if engine == "Local LLM":
-
-            score = ask_local_llm(
-                evaluation_prompt,
-                model_name
-            )
-
-        elif engine == "Gemini":
+        if engine == "Gemini":
 
             score = ask_gemini(
                 evaluation_prompt,
@@ -328,25 +306,12 @@ if generate_notes:
                 context
             )
 
-            # ---------------- LOCAL ---------------- #
-
-            if engine == "Local LLM":
-
-                notes = ask_local_llm(
-                    notes_prompt,
-                    selected_model
-                )
-
-            # ---------------- GEMINI ---------------- #
-
-            elif engine == "Gemini":
+            if engine == "Gemini":
 
                 notes = ask_gemini(
                     notes_prompt,
                     gemini_model
                 )
-
-            # ---------------- CHATGPT ---------------- #
 
             elif engine == "ChatGPT":
 
@@ -354,8 +319,6 @@ if generate_notes:
                     notes_prompt,
                     chatgpt_model
                 )
-
-            # ---------------- GROQ ---------------- #
 
             else:
 
@@ -395,13 +358,9 @@ if query:
     with st.chat_message("user"):
         st.markdown(query)
 
-    # ---------------- STATUS ---------------- #
-
     status = st.empty()
 
     status.info("🔍 Retrieving MBA knowledge...")
-
-    # ---------------- RETRIEVE ---------------- #
 
     results = retrieve_and_rerank(query)
 
@@ -409,8 +368,6 @@ if query:
         doc
         for rerank_score, vector_score, doc in results
     ]
-
-    # ---------------- CONTEXT COMPRESSION ---------------- #
 
     unique_chunks = []
 
@@ -427,8 +384,6 @@ if query:
             unique_chunks.append(content)
 
     context = "\n\n".join(unique_chunks)
-
-    # ---------------- CONVERSATION MEMORY ---------------- #
 
     chat_history = ""
 
@@ -518,8 +473,6 @@ Provide:
 - risk analysis
 """
 
-    # ---------------- FINAL PROMPT ---------------- #
-
     final_prompt = f"""
 Previous Conversation:
 {chat_history}
@@ -540,8 +493,6 @@ Question:
 {query}
 """
 
-    # ---------------- RESPONSE ---------------- #
-
     with st.chat_message("assistant"):
 
         with st.spinner("🧠 Thinking..."):
@@ -552,20 +503,7 @@ Question:
 
                 status.info("🧠 Analyzing business concepts...")
 
-                # ---------------- LOCAL ---------------- #
-
-                if engine == "Local LLM":
-
-                    response = ask_local_llm(
-                        final_prompt,
-                        selected_model
-                    )
-
-                    active_model = selected_model
-
-                # ---------------- GEMINI ---------------- #
-
-                elif engine == "Gemini":
+                if engine == "Gemini":
 
                     response = ask_gemini(
                         final_prompt,
@@ -573,8 +511,6 @@ Question:
                     )
 
                     active_model = gemini_model
-
-                # ---------------- CHATGPT ---------------- #
 
                 elif engine == "ChatGPT":
 
@@ -585,27 +521,14 @@ Question:
 
                     active_model = chatgpt_model
 
-                # ---------------- GROQ ---------------- #
-
                 else:
 
-                    try:
+                    response = ask_groq(
+                        final_prompt,
+                        groq_model
+                    )
 
-                        response = ask_groq(
-                            final_prompt,
-                            groq_model
-                        )
-
-                        active_model = groq_model
-
-                    except:
-
-                        response = ask_groq(
-                            final_prompt,
-                            "llama-3.1-8b-instant"
-                        )
-
-                        active_model = "llama-3.1-8b-instant"
+                    active_model = groq_model
 
             except Exception as e:
 
@@ -614,8 +537,6 @@ Question:
             end_time = time.time()
 
             response_time = end_time - start_time
-
-            # ---------------- FORMAT TIME ---------------- #
 
             if response_time >= 60:
 
@@ -629,8 +550,6 @@ Question:
 
                 formatted_time = f"{round(response_time, 2)} sec"
 
-            # ---------------- RESPONSE ---------------- #
-
             status.info("📊 Evaluating response quality...")
 
             st.markdown(response)
@@ -638,8 +557,6 @@ Question:
             st.caption(
                 f"⏱️ Response Time: {formatted_time}"
             )
-
-            # ---------------- LLM EVALUATION ---------------- #
 
             llm_score = evaluate_answer(
                 query,
@@ -649,16 +566,12 @@ Question:
                 active_model
             )
 
-            # ---------------- CONFIDENCE ---------------- #
-
             confidence = calculate_confidence(
                 results,
                 llm_score
             )
 
             status.success("✅ Response Ready")
-
-            # ---------------- SHOW CONFIDENCE ---------------- #
 
             if confidence >= 80:
 
@@ -679,8 +592,6 @@ Question:
                 )
 
             st.progress(confidence / 100)
-
-            # ---------------- CONTEXT ---------------- #
 
             with st.expander("📚 Retrieved Context"):
 
@@ -722,8 +633,6 @@ Question:
 
                     st.markdown("---")
 
-    # ---------------- SAVE CHAT ---------------- #
-
     st.session_state.messages.append({
         "role": "assistant",
         "content": response
@@ -732,6 +641,6 @@ Question:
 # ---------------- FOOTER ---------------- #
 
 st.markdown(
-    '<div class="footer">Built using LangChain • ChromaDB • Ollama • Streamlit</div>',
+    '<div class="footer">Built using LangChain • ChromaDB • Streamlit</div>',
     unsafe_allow_html=True
 )
