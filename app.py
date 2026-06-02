@@ -1,3 +1,4 @@
+
 import streamlit as st
 import time
 
@@ -55,7 +56,7 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="subtitle">Multi-LLM RAG-based NMIMS PDF Chatbot</div>',
+    '<div class="subtitle">RAG-based MBA Academic Assistant</div>',
     unsafe_allow_html=True
 )
 
@@ -155,7 +156,25 @@ def calculate_confidence(results, llm_score=None):
 
     try:
 
-        retrieval_confidence = 85
+        rerank_scores = [
+            float(rerank_score)
+            for rerank_score, vector_score, doc
+            in results
+        ]
+
+        avg_score = (
+            sum(rerank_scores)
+            / len(rerank_scores)
+        )
+
+        normalized = (
+            (avg_score + 10) / 20
+        ) * 100
+
+        retrieval_confidence = max(
+            45,
+            min(normalized, 95)
+        )
 
         if llm_score is not None:
 
@@ -169,7 +188,10 @@ def calculate_confidence(results, llm_score=None):
                 2
             )
 
-        return retrieval_confidence
+        return round(
+            retrieval_confidence,
+            2
+        )
 
     except:
 
@@ -240,6 +262,7 @@ Return ONLY a number between 1 and 100.
         return max(1, min(score, 100))
 
     except:
+
         return None
 
 # ---------------- NOTES GENERATOR ---------------- #
@@ -278,8 +301,12 @@ if generate_notes:
             )
 
             context = "\n\n".join([
+
                 doc.page_content
-                for doc in results
+
+                for rerank_score,
+                vector_score,
+                doc in results
             ])
 
             notes_prompt = generate_mba_notes(
@@ -342,15 +369,21 @@ if query:
 
     status = st.empty()
 
-    status.info("🔍 Retrieving MBA knowledge...")
+    status.info(
+        "🔍 Retrieving MBA knowledge..."
+    )
+
+    # ---------------- RETRIEVE ---------------- #
 
     results = retrieve_and_rerank(query)
+
+    # ---------------- CONTEXT ---------------- #
 
     unique_chunks = []
 
     seen = set()
 
-    for doc in results:
+    for rerank_score, vector_score, doc in results:
 
         content = doc.page_content.strip()
 
@@ -362,6 +395,8 @@ if query:
 
     context = "\n\n".join(unique_chunks)
 
+    # ---------------- MEMORY ---------------- #
+
     chat_history = ""
 
     for msg in st.session_state.messages[-6:]:
@@ -369,7 +404,9 @@ if query:
         role = msg["role"]
         content = msg["content"]
 
-        chat_history += f"{role}: {content}\n"
+        chat_history += (
+            f"{role}: {content}\n"
+        )
 
     # ---------------- AI MODES ---------------- #
 
@@ -377,21 +414,31 @@ if query:
 
         system_prompt = """
 You are an expert MBA professor.
+
 Explain concepts clearly.
-Use examples and business context.
+
+Use:
+- examples
+- business context
+- structured explanations
 """
 
     elif mode == "Case Study Solver":
 
         system_prompt = """
 You are a top-tier business consultant.
-Provide SWOT and recommendations.
+
+Provide:
+- SWOT analysis
+- recommendations
+- business impact
 """
 
     elif mode == "Interview Prep":
 
         system_prompt = """
 You are an MBA placement interviewer.
+
 Provide concise professional responses.
 """
 
@@ -399,13 +446,15 @@ Provide concise professional responses.
 
         system_prompt = """
 You are a business research analyst.
-Provide detailed analysis and insights.
+
+Provide detailed insights and analysis.
 """
 
     elif mode == "Exam Mode":
 
         system_prompt = """
 You are an MBA exam assistant.
+
 Provide short and direct answers.
 """
 
@@ -413,14 +462,23 @@ Provide short and direct answers.
 
         system_prompt = """
 You are a corporate strategy consultant.
+
 Provide executive-level strategic insights.
 """
+
+    # ---------------- FINAL PROMPT ---------------- #
 
     final_prompt = f"""
 Previous Conversation:
 {chat_history}
 
 {system_prompt}
+
+IMPORTANT:
+
+1. Use uploaded documents first
+2. If context is insufficient, say so
+3. Avoid hallucinations
 
 Context:
 {context}
@@ -431,6 +489,8 @@ Question:
 
     active_model = "Unknown"
 
+    # ---------------- RESPONSE ---------------- #
+
     with st.chat_message("assistant"):
 
         with st.spinner("🧠 Thinking..."):
@@ -438,6 +498,10 @@ Question:
             start_time = time.time()
 
             try:
+
+                status.info(
+                    "🧠 Generating MBA insights..."
+                )
 
                 if engine == "Gemini":
 
@@ -468,7 +532,9 @@ Question:
 
             except Exception as e:
 
-                response = f"❌ Error:\n\n{str(e)}"
+                response = (
+                    f"❌ Error:\n\n{str(e)}"
+                )
 
             end_time = time.time()
 
@@ -477,10 +543,19 @@ Question:
                 2
             )
 
+            # ---------------- SHOW RESPONSE ---------------- #
+
             st.markdown(response)
 
             st.caption(
-                f"⏱️ Response Time: {response_time} sec"
+                f"⏱️ Response Time: "
+                f"{response_time} sec"
+            )
+
+            # ---------------- EVALUATION ---------------- #
+
+            status.info(
+                "📊 Evaluating response..."
             )
 
             llm_score = evaluate_answer(
@@ -491,36 +566,53 @@ Question:
                 active_model
             )
 
+            # ---------------- CONFIDENCE ---------------- #
+
             confidence = calculate_confidence(
                 results,
                 llm_score
             )
 
+            status.success(
+                "✅ Response Ready"
+            )
+
+            # ---------------- SHOW CONFIDENCE ---------------- #
+
             if confidence >= 80:
 
                 st.success(
-                    f"✅ AI Confidence Score: {confidence}%"
+                    f"✅ AI Confidence Score: "
+                    f"{confidence}%"
                 )
 
             elif confidence >= 60:
 
                 st.warning(
-                    f"⚠️ AI Confidence Score: {confidence}%"
+                    f"⚠️ AI Confidence Score: "
+                    f"{confidence}%"
                 )
 
             else:
 
                 st.error(
-                    f"❌ AI Confidence Score: {confidence}%"
+                    f"❌ AI Confidence Score: "
+                    f"{confidence}%"
                 )
 
             st.progress(confidence / 100)
+
+            # ---------------- CONTEXT ---------------- #
 
             with st.expander(
                 "📚 Retrieved Context"
             ):
 
-                for i, doc in enumerate(results):
+                for i, (
+                    rerank_score,
+                    vector_score,
+                    doc
+                ) in enumerate(results):
 
                     source = doc.metadata.get(
                         "source",
@@ -537,8 +629,21 @@ Question:
                     )
 
                     st.caption(
-                        f"📄 Source: {source} | "
+                        f"📄 Source: {source}"
+                    )
+
+                    st.caption(
                         f"📑 Page: {page}"
+                    )
+
+                    st.caption(
+                        f"🎯 Reranker: "
+                        f"{round(float(rerank_score), 3)}"
+                    )
+
+                    st.caption(
+                        f"📏 Vector Score: "
+                        f"{round(float(vector_score), 3)}"
                     )
 
                     st.write(
@@ -547,7 +652,10 @@ Question:
 
                     st.markdown("---")
 
+    # ---------------- SAVE CHAT ---------------- #
+
     st.session_state.messages.append({
+
         "role": "assistant",
         "content": response
     })
@@ -555,6 +663,9 @@ Question:
 # ---------------- FOOTER ---------------- #
 
 st.markdown(
-    '<div class="footer">Built using LangChain • ChromaDB • Streamlit</div>',
+    '<div class="footer">'
+    'Built using LangChain • '
+    'ChromaDB • Streamlit'
+    '</div>',
     unsafe_allow_html=True
 )
