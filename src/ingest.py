@@ -1,92 +1,70 @@
-import os
-
-from tqdm import tqdm
-
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+import os
 
-# ---------------- CONFIG ---------------- #
-
-PDF_FOLDER = "data"
+DATA_PATH = "data"
 CHROMA_PATH = "chroma_db"
 
-# ---------------- LOAD PDFS ---------------- #
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
-def load_documents():
+all_docs = []
 
-    documents = []
+# ---------------- LOAD PDFs ---------------- #
 
-    pdf_files = [
-        file for file in os.listdir(PDF_FOLDER)
-        if file.endswith(".pdf")
-    ]
+for file in os.listdir(DATA_PATH):
 
-    print(f"Found {len(pdf_files)} PDFs")
+    if file.endswith(".pdf"):
 
-    for file in tqdm(pdf_files, desc="Loading PDFs"):
-
-        pdf_path = os.path.join(PDF_FOLDER, file)
+        pdf_path = os.path.join(
+            DATA_PATH,
+            file
+        )
 
         loader = PyPDFLoader(pdf_path)
 
-        pages = loader.load()
+        documents = loader.load()
 
-        for page_num, page in enumerate(pages):
+        # ADD SOURCE + PAGE
 
-            page.metadata["source"] = file
-            page.metadata["page"] = page_num + 1
+        for doc in documents:
 
-            documents.append(page)
+            doc.metadata["source"] = file
 
-    return documents
+            # page already exists
+            # make it human readable
 
-# ---------------- SPLIT TEXT ---------------- #
+            if "page" in doc.metadata:
 
-def split_documents(documents):
+                doc.metadata["page"] = (
+                    int(doc.metadata["page"]) + 1
+                )
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=700,
-        chunk_overlap=100
-    )
+        all_docs.extend(documents)
 
-    return splitter.split_documents(documents)
+# ---------------- SPLIT ---------------- #
 
-# ---------------- CREATE VECTOR STORE ---------------- #
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=700,
+    chunk_overlap=100
+)
 
-def create_vector_store(chunks):
+chunks = text_splitter.split_documents(
+    all_docs
+)
 
-    print("Loading embedding model...")
+# ---------------- CREATE DB ---------------- #
 
-    embeddings = HuggingFaceEmbeddings(
-    model_name="BAAI/bge-small-en-v1.5",
-    model_kwargs={"device": "cpu"},
-    encode_kwargs={"normalize_embeddings": True}
-    )
+vectorstore = Chroma.from_documents(
+    documents=chunks,
+    embedding=embedding_model,
+    persist_directory=CHROMA_PATH
+)
 
-    print("Creating ChromaDB...")
+vectorstore.persist()
 
-    vectordb = Chroma.from_documents(
-        documents=chunks,
-        embedding=embeddings,
-        persist_directory=CHROMA_PATH
-    )
-
-    print("ChromaDB created successfully")
-
-# ---------------- MAIN ---------------- #
-
-if __name__ == "__main__":
-
-    docs = load_documents()
-
-    print(f"Loaded {len(docs)} pages")
-
-    chunks = split_documents(docs)
-
-    print(f"Created {len(chunks)} chunks")
-
-    create_vector_store(chunks)
-
+print("✅ Chroma DB Created Successfully")
