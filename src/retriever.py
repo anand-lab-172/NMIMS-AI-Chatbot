@@ -37,13 +37,19 @@ def retrieve_and_rerank(query):
 
         for doc, score in docs:
 
+            # Convert distance → similarity
+
+            similarity_score = 1 / (
+                1 + float(score)
+            )
+
             rerank_score = round(
-                max(0.6, 1 - float(score)),
+                similarity_score,
                 3
             )
 
             vector_score = round(
-                max(0.6, 1 - float(score)),
+                similarity_score,
                 3
             )
 
