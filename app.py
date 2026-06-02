@@ -2,13 +2,6 @@ import streamlit as st
 import time, os
 import subprocess
 
-if not os.path.exists("chroma_db"):
-
-    with st.spinner("Creating Vector DB..."):
-
-        subprocess.run(
-            ["python", "ingest.py"]
-        )
         
 from src.retriever import retrieve_and_rerank
 
@@ -23,6 +16,14 @@ st.set_page_config(
     page_icon="🎓",
     layout="wide"
 )
+
+if not os.path.exists("chroma_db"):
+
+    with st.spinner("Creating Vector DB..."):
+
+        subprocess.run(
+            ["python", "ingest.py"]
+        )
 
 # ---------------- CSS ---------------- #
 
