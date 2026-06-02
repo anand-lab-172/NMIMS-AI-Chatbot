@@ -21,19 +21,7 @@ st.set_page_config(
 
 # ---------------- CREATE VECTOR DB ---------------- #
 
-if not os.path.exists(
-    "chroma_db/chroma.sqlite3"
-):
-
-    with st.spinner(
-        "📚 Creating Vector Database..."
-    ):
-
-        create_vector_db()
-
-        st.success(
-            "✅ Vector Database Created"
-        )
+create_vector_db()
 
 # ---------------- CSS ---------------- #
 
