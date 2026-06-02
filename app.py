@@ -1,9 +1,8 @@
 
 import os
-import subprocess
 import streamlit as st
 import time
-
+from src.ingest import create_vector_db
 from src.retriever import retrieve_and_rerank
 
 from src.llm import (
@@ -22,22 +21,19 @@ st.set_page_config(
 
 # ---------------- CREATE VECTOR DB ---------------- #
 
-# ---------------- CREATE VECTOR DB ---------------- #
+if not os.path.exists(
+    "chroma_db/chroma.sqlite3"
+):
 
-if not os.path.exists("chroma_db/chroma.sqlite3"):
+    with st.spinner(
+        "📚 Creating Vector Database..."
+    ):
 
-    with st.spinner("📚 Creating Vector Database..."):
+        create_vector_db()
 
-        result = subprocess.run(
-            ["python", "src/ingest.py"],
-            capture_output=True,
-            text=True)
-
-        st.write(result.stdout)
-
-        if result.stderr:
-
-            st.error(result.stderr)
+        st.success(
+            "✅ Vector Database Created"
+        )
 
 # ---------------- CSS ---------------- #
 
