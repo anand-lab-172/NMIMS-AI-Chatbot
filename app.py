@@ -447,10 +447,10 @@ Question:
                 f"{response_time} sec"
             )
 
-            st.info(
-                f"📚 Retrieved "
-                f"{len(results)} relevant knowledge chunks"
-            )
+            # st.info(
+            #     f"📚 Retrieved "
+            #     f"{len(results)} relevant knowledge chunks"
+            # )
 
             # ---------------- CONTEXT ---------------- #
 
