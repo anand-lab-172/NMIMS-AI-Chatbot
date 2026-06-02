@@ -1,3 +1,4 @@
+
 streamlit==1.35.0
 pillow==10.3.0
 
@@ -5,6 +6,9 @@ langchain==0.2.11
 langchain-community==0.2.10
 langchain-core==0.2.23
 langchain-text-splitters==0.2.2
+
+langchain-chroma==0.1.2
+langchain-huggingface==0.0.3
 
 chromadb==0.5.5
 sentence-transformers==3.0.1
@@ -16,3 +20,6 @@ groq
 pypdf
 python-dotenv
 tqdm
+duckduckgo-search
+torch
+transformers
