@@ -28,9 +28,19 @@ embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-# ---------------- CREATE DB ---------------- #
+# ---------------- CREATE VECTOR DB ---------------- #
 
 def create_vector_db():
+
+    # Skip if DB already exists
+
+    if os.path.exists(
+        "chroma_db/chroma.sqlite3"
+    ):
+
+        print("✅ Chroma DB already exists")
+
+        return
 
     all_docs = []
 
