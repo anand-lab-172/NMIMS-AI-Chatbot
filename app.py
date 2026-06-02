@@ -157,32 +157,52 @@ def calculate_confidence(results, llm_score=None):
     try:
 
         if not results:
-            return 60
+            return 0
 
-        rerank_scores = [
-            float(r[0])
-            for r in results
-        ]
+        rerank_scores = []
 
-        avg_score = (
-            sum(rerank_scores)
-            / len(rerank_scores)
-        )
+        for result in results:
 
-        retrieval_confidence = (
-            avg_score * 100
-        )
+            try:
 
-        retrieval_confidence = max(
-            60,
-            min(retrieval_confidence, 95)
-        )
+                rerank_score = float(result[0])
+
+                rerank_scores.append(
+                    rerank_score
+                )
+
+            except:
+                pass
+
+        # ---------------- NO SCORES ---------------- #
+
+        if not rerank_scores:
+
+            retrieval_confidence = 50
+
+        else:
+
+            avg_score = (
+                sum(rerank_scores)
+                / len(rerank_scores)
+            )
+
+            retrieval_confidence = (
+                avg_score * 100
+            )
+
+            retrieval_confidence = max(
+                20,
+                min(retrieval_confidence, 95)
+            )
+
+        # ---------------- LLM SCORE ---------------- #
 
         if llm_score is not None:
 
             final_confidence = (
-                retrieval_confidence * 0.4 +
-                llm_score * 0.6
+                retrieval_confidence * 0.5 +
+                llm_score * 0.5
             )
 
             return round(
@@ -195,9 +215,13 @@ def calculate_confidence(results, llm_score=None):
             2
         )
 
-    except:
+    except Exception as e:
 
-        return 80
+        print(
+            f"Confidence Error: {e}"
+        )
+
+        return 50
 
 # ---------------- LLM EVALUATOR ---------------- #
 
@@ -260,7 +284,10 @@ Return ONLY a number between 1 and 100.
             )
         )
 
-        return max(1, min(score, 100))
+        return max(
+            1,
+            min(score, 100)
+        )
 
     except:
 
@@ -291,7 +318,9 @@ Context:
 
 if generate_notes:
 
-    with st.spinner("📝 Generating MBA Notes..."):
+    with st.spinner(
+        "📝 Generating MBA Notes..."
+    ):
 
         try:
 
@@ -460,6 +489,11 @@ Previous Conversation:
 {chat_history}
 
 {system_prompt}
+
+IMPORTANT:
+1. Use context as primary source
+2. Avoid hallucinations
+3. Mention if information is unavailable
 
 Context:
 {context}
