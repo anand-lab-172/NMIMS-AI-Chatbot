@@ -1,4 +1,4 @@
-```python
+
 import os
 import subprocess
 import streamlit as st
@@ -511,4 +511,3 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True
 )
-```
