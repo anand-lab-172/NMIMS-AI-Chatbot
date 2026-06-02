@@ -1,8 +1,9 @@
-import streamlit as st
-import time, os
+```python
+import os
 import subprocess
+import streamlit as st
+import time
 
-        
 from src.retriever import retrieve_and_rerank
 
 from src.llm import (
@@ -11,15 +12,19 @@ from src.llm import (
     ask_groq
 )
 
+# ---------------- PAGE CONFIG ---------------- #
+
 st.set_page_config(
     page_title="NMIMS AI Chatbot",
     page_icon="🎓",
     layout="wide"
 )
 
+# ---------------- CREATE VECTOR DB ---------------- #
+
 if not os.path.exists("chroma_db"):
 
-    with st.spinner("Creating Vector DB..."):
+    with st.spinner("📚 Creating Vector Database..."):
 
         subprocess.run(
             ["python", "ingest.py"]
@@ -151,159 +156,18 @@ with st.sidebar:
 # ---------------- CHAT HISTORY ---------------- #
 
 if "messages" not in st.session_state:
+
     st.session_state.messages = []
 
-# ---------------- DISPLAY CHATS ---------------- #
+# ---------------- DISPLAY CHAT ---------------- #
 
 for message in st.session_state.messages:
 
     with st.chat_message(message["role"]):
+
         st.markdown(message["content"])
 
-# ---------------- CONFIDENCE SCORE ---------------- #
-
-def calculate_confidence(results, llm_score=None):
-
-    try:
-
-        if not results:
-            return 0
-
-        rerank_scores = []
-
-        for result in results:
-
-            try:
-
-                rerank_score = float(result[0])
-
-                rerank_scores.append(
-                    rerank_score
-                )
-
-            except:
-                pass
-
-        # ---------------- NO SCORES ---------------- #
-
-        if not rerank_scores:
-
-            retrieval_confidence = 50
-
-        else:
-
-            avg_score = (
-                sum(rerank_scores)
-                / len(rerank_scores)
-            )
-
-            retrieval_confidence = (
-                avg_score * 100
-            )
-
-            retrieval_confidence = max(
-                20,
-                min(retrieval_confidence, 95)
-            )
-
-        # ---------------- LLM SCORE ---------------- #
-
-        if llm_score is not None:
-
-            final_confidence = (
-                retrieval_confidence * 0.5 +
-                llm_score * 0.5
-            )
-
-            return round(
-                min(final_confidence, 95),
-                2
-            )
-
-        return round(
-            retrieval_confidence,
-            2
-        )
-
-    except Exception as e:
-
-        print(
-            f"Confidence Error: {e}"
-        )
-
-        return 50
-
-# ---------------- LLM EVALUATOR ---------------- #
-
-def evaluate_answer(
-    query,
-    response,
-    context,
-    engine,
-    model_name
-):
-
-    evaluation_prompt = f"""
-You are an MBA professor evaluating an AI-generated answer.
-
-Question:
-{query}
-
-Context:
-{context}
-
-Answer:
-{response}
-
-Evaluate:
-- relevance
-- analytical depth
-- clarity
-- completeness
-
-Return ONLY a number between 1 and 100.
-"""
-
-    try:
-
-        if engine == "Gemini":
-
-            score = ask_gemini(
-                evaluation_prompt,
-                model_name
-            )
-
-        elif engine == "ChatGPT":
-
-            score = ask_chatgpt(
-                evaluation_prompt,
-                model_name
-            )
-
-        else:
-
-            score = ask_groq(
-                evaluation_prompt,
-                model_name
-            )
-
-        score = float(
-            "".join(
-                c for c in score
-                if c.isdigit() or c == "."
-            )
-        )
-
-        return max(
-            1,
-            min(score, 100)
-        )
-
-    except:
-
-        return 85
-
-# ---------------- NOTES ---------------- #
+# ---------------- NOTES GENERATOR ---------------- #
 
 def generate_mba_notes(context):
 
@@ -312,7 +176,7 @@ Generate MBA revision notes.
 
 Format:
 - Title
-- Concepts
+- Key Concepts
 - Definitions
 - Bullet Points
 - Examples
@@ -328,9 +192,7 @@ Context:
 
 if generate_notes:
 
-    with st.spinner(
-        "📝 Generating MBA Notes..."
-    ):
+    with st.spinner("📝 Generating MBA Notes..."):
 
         try:
 
@@ -406,6 +268,7 @@ if query:
     })
 
     with st.chat_message("user"):
+
         st.markdown(query)
 
     status = st.empty()
@@ -456,42 +319,65 @@ if query:
 
         system_prompt = """
 You are an MBA professor.
+
 Explain concepts clearly.
-Use examples and structure.
+
+Use:
+- examples
+- structured explanations
+- business context
 """
 
     elif mode == "Case Study Solver":
 
         system_prompt = """
 You are a business consultant.
-Provide SWOT and recommendations.
+
+Provide:
+- SWOT analysis
+- recommendations
+- business insights
 """
 
     elif mode == "Interview Prep":
 
         system_prompt = """
 You are an MBA interviewer.
-Provide concise professional answers.
+
+Provide:
+- concise
+- professional
+- practical answers
 """
 
     elif mode == "Research Analyst":
 
         system_prompt = """
 You are a research analyst.
-Provide detailed insights.
+
+Provide:
+- detailed analysis
+- comparisons
+- strategic insights
 """
 
     elif mode == "Exam Mode":
 
         system_prompt = """
 Provide concise exam-ready answers.
+
+Use bullet points.
 """
 
     else:
 
         system_prompt = """
-You are a strategy consultant.
-Provide executive insights.
+You are a corporate consultant.
+
+Provide:
+- executive insights
+- strategic thinking
+- operational guidance
 """
 
     final_prompt = f"""
@@ -503,7 +389,7 @@ Previous Conversation:
 IMPORTANT:
 1. Use context as primary source
 2. Avoid hallucinations
-3. Mention if information is unavailable
+3. Mention if info is unavailable
 
 Context:
 {context}
@@ -511,8 +397,6 @@ Context:
 Question:
 {query}
 """
-
-    active_model = "Unknown"
 
     with st.chat_message("assistant"):
 
@@ -529,10 +413,6 @@ Question:
                         gemini_model
                     )
 
-                    active_model = (
-                        gemini_model
-                    )
-
                 elif engine == "ChatGPT":
 
                     response = ask_chatgpt(
@@ -540,18 +420,10 @@ Question:
                         chatgpt_model
                     )
 
-                    active_model = (
-                        chatgpt_model
-                    )
-
                 else:
 
                     response = ask_groq(
                         final_prompt,
-                        groq_model
-                    )
-
-                    active_model = (
                         groq_model
                     )
 
@@ -575,41 +447,12 @@ Question:
                 f"{response_time} sec"
             )
 
-            llm_score = evaluate_answer(
-                query,
-                response,
-                context,
-                engine,
-                active_model
+            st.info(
+                f"📚 Retrieved "
+                f"{len(results)} relevant knowledge chunks"
             )
 
-            confidence = calculate_confidence(
-                results,
-                llm_score
-            )
-
-            if confidence >= 80:
-
-                st.success(
-                    f"✅ AI Confidence Score: "
-                    f"{confidence}%"
-                )
-
-            elif confidence >= 60:
-
-                st.warning(
-                    f"⚠️ AI Confidence Score: "
-                    f"{confidence}%"
-                )
-
-            else:
-
-                st.error(
-                    f"❌ AI Confidence Score: "
-                    f"{confidence}%"
-                )
-
-            st.progress(confidence / 100)
+            # ---------------- CONTEXT ---------------- #
 
             with st.expander(
                 "📚 Retrieved Context"
@@ -629,8 +472,9 @@ Question:
                     page = doc.metadata.get(
                         "page"
                     )
-                    
+
                     if page is None:
+
                         page = "N/A"
 
                     st.markdown(
@@ -643,10 +487,8 @@ Question:
                     )
 
                     st.caption(
-                        f"🎯 Reranker: "
-                        f"{round(float(rerank_score), 3)} | "
-                        f"📏 Vector: "
-                        f"{round(float(vector_score), 3)}"
+                        f"🎯 Similarity: "
+                        f"{round(float(rerank_score), 3)}"
                     )
 
                     st.write(
@@ -669,3 +511,4 @@ st.markdown(
     '</div>',
     unsafe_allow_html=True
 )
+```
