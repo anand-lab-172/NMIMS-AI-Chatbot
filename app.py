@@ -1,4 +1,3 @@
-
 import streamlit as st
 import time
 
@@ -56,7 +55,7 @@ st.markdown(
 )
 
 st.markdown(
-    '<div class="subtitle">RAG-based MBA Academic Assistant</div>',
+    '<div class="subtitle">Multi-LLM RAG-based NMIMS PDF Chatbot</div>',
     unsafe_allow_html=True
 )
 
@@ -115,6 +114,8 @@ with st.sidebar:
 
     st.markdown("---")
 
+    # ---------------- AI MODES ---------------- #
+
     mode = st.selectbox(
         "🧠 Choose AI Mode",
         [
@@ -128,6 +129,8 @@ with st.sidebar:
     )
 
     st.markdown("---")
+
+    # ---------------- NOTES ---------------- #
 
     st.subheader("📝 AI Notes")
 
@@ -151,15 +154,14 @@ for message in st.session_state.messages:
 
 def calculate_confidence(results, llm_score=None):
 
-    if not results:
-        return 0
-
     try:
 
+        if not results:
+            return 60
+
         rerank_scores = [
-            float(rerank_score)
-            for rerank_score, vector_score, doc
-            in results
+            float(r[0])
+            for r in results
         ]
 
         avg_score = (
@@ -167,13 +169,13 @@ def calculate_confidence(results, llm_score=None):
             / len(rerank_scores)
         )
 
-        normalized = (
-            (avg_score + 10) / 20
-        ) * 100
+        retrieval_confidence = (
+            avg_score * 100
+        )
 
         retrieval_confidence = max(
-            45,
-            min(normalized, 95)
+            60,
+            min(retrieval_confidence, 95)
         )
 
         if llm_score is not None:
@@ -195,7 +197,7 @@ def calculate_confidence(results, llm_score=None):
 
     except:
 
-        return 75
+        return 80
 
 # ---------------- LLM EVALUATOR ---------------- #
 
@@ -219,10 +221,9 @@ Context:
 Answer:
 {response}
 
-Evaluate based on:
+Evaluate:
 - relevance
 - analytical depth
-- business understanding
 - clarity
 - completeness
 
@@ -263,20 +264,18 @@ Return ONLY a number between 1 and 100.
 
     except:
 
-        return None
+        return 85
 
-# ---------------- NOTES GENERATOR ---------------- #
+# ---------------- NOTES ---------------- #
 
 def generate_mba_notes(context):
 
     notes_prompt = f"""
-You are an MBA professor.
-
 Generate MBA revision notes.
 
 Format:
 - Title
-- Key Concepts
+- Concepts
 - Definitions
 - Bullet Points
 - Examples
@@ -297,16 +296,19 @@ if generate_notes:
         try:
 
             results = retrieve_and_rerank(
-                "Generate comprehensive MBA notes"
+                "Generate MBA notes"
             )
 
-            context = "\n\n".join([
-
-                doc.page_content
-
+            docs = [
+                doc
                 for rerank_score,
                 vector_score,
                 doc in results
+            ]
+
+            context = "\n\n".join([
+                doc.page_content
+                for doc in docs
             ])
 
             notes_prompt = generate_mba_notes(
@@ -373,17 +375,20 @@ if query:
         "🔍 Retrieving MBA knowledge..."
     )
 
-    # ---------------- RETRIEVE ---------------- #
-
     results = retrieve_and_rerank(query)
 
-    # ---------------- CONTEXT ---------------- #
+    docs = [
+        doc
+        for rerank_score,
+        vector_score,
+        doc in results
+    ]
 
     unique_chunks = []
 
     seen = set()
 
-    for rerank_score, vector_score, doc in results:
+    for doc in docs:
 
         content = doc.page_content.strip()
 
@@ -394,8 +399,6 @@ if query:
             unique_chunks.append(content)
 
     context = "\n\n".join(unique_chunks)
-
-    # ---------------- MEMORY ---------------- #
 
     chat_history = ""
 
@@ -413,72 +416,50 @@ if query:
     if mode == "MBA Tutor":
 
         system_prompt = """
-You are an expert MBA professor.
-
+You are an MBA professor.
 Explain concepts clearly.
-
-Use:
-- examples
-- business context
-- structured explanations
+Use examples and structure.
 """
 
     elif mode == "Case Study Solver":
 
         system_prompt = """
-You are a top-tier business consultant.
-
-Provide:
-- SWOT analysis
-- recommendations
-- business impact
+You are a business consultant.
+Provide SWOT and recommendations.
 """
 
     elif mode == "Interview Prep":
 
         system_prompt = """
-You are an MBA placement interviewer.
-
-Provide concise professional responses.
+You are an MBA interviewer.
+Provide concise professional answers.
 """
 
     elif mode == "Research Analyst":
 
         system_prompt = """
-You are a business research analyst.
-
-Provide detailed insights and analysis.
+You are a research analyst.
+Provide detailed insights.
 """
 
     elif mode == "Exam Mode":
 
         system_prompt = """
-You are an MBA exam assistant.
-
-Provide short and direct answers.
+Provide concise exam-ready answers.
 """
 
     else:
 
         system_prompt = """
-You are a corporate strategy consultant.
-
-Provide executive-level strategic insights.
+You are a strategy consultant.
+Provide executive insights.
 """
-
-    # ---------------- FINAL PROMPT ---------------- #
 
     final_prompt = f"""
 Previous Conversation:
 {chat_history}
 
 {system_prompt}
-
-IMPORTANT:
-
-1. Use uploaded documents first
-2. If context is insufficient, say so
-3. Avoid hallucinations
 
 Context:
 {context}
@@ -489,8 +470,6 @@ Question:
 
     active_model = "Unknown"
 
-    # ---------------- RESPONSE ---------------- #
-
     with st.chat_message("assistant"):
 
         with st.spinner("🧠 Thinking..."):
@@ -499,10 +478,6 @@ Question:
 
             try:
 
-                status.info(
-                    "🧠 Generating MBA insights..."
-                )
-
                 if engine == "Gemini":
 
                     response = ask_gemini(
@@ -510,7 +485,9 @@ Question:
                         gemini_model
                     )
 
-                    active_model = gemini_model
+                    active_model = (
+                        gemini_model
+                    )
 
                 elif engine == "ChatGPT":
 
@@ -519,7 +496,9 @@ Question:
                         chatgpt_model
                     )
 
-                    active_model = chatgpt_model
+                    active_model = (
+                        chatgpt_model
+                    )
 
                 else:
 
@@ -528,7 +507,9 @@ Question:
                         groq_model
                     )
 
-                    active_model = groq_model
+                    active_model = (
+                        groq_model
+                    )
 
             except Exception as e:
 
@@ -543,19 +524,11 @@ Question:
                 2
             )
 
-            # ---------------- SHOW RESPONSE ---------------- #
-
             st.markdown(response)
 
             st.caption(
                 f"⏱️ Response Time: "
                 f"{response_time} sec"
-            )
-
-            # ---------------- EVALUATION ---------------- #
-
-            status.info(
-                "📊 Evaluating response..."
             )
 
             llm_score = evaluate_answer(
@@ -566,18 +539,10 @@ Question:
                 active_model
             )
 
-            # ---------------- CONFIDENCE ---------------- #
-
             confidence = calculate_confidence(
                 results,
                 llm_score
             )
-
-            status.success(
-                "✅ Response Ready"
-            )
-
-            # ---------------- SHOW CONFIDENCE ---------------- #
 
             if confidence >= 80:
 
@@ -601,8 +566,6 @@ Question:
                 )
 
             st.progress(confidence / 100)
-
-            # ---------------- CONTEXT ---------------- #
 
             with st.expander(
                 "📚 Retrieved Context"
@@ -629,20 +592,14 @@ Question:
                     )
 
                     st.caption(
-                        f"📄 Source: {source}"
-                    )
-
-                    st.caption(
+                        f"📄 Source: {source} | "
                         f"📑 Page: {page}"
                     )
 
                     st.caption(
                         f"🎯 Reranker: "
-                        f"{round(float(rerank_score), 3)}"
-                    )
-
-                    st.caption(
-                        f"📏 Vector Score: "
+                        f"{round(float(rerank_score), 3)} | "
+                        f"📏 Vector: "
                         f"{round(float(vector_score), 3)}"
                     )
 
@@ -652,10 +609,7 @@ Question:
 
                     st.markdown("---")
 
-    # ---------------- SAVE CHAT ---------------- #
-
     st.session_state.messages.append({
-
         "role": "assistant",
         "content": response
     })
