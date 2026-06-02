@@ -1,4 +1,4 @@
-```python
+
 import os
 
 os.environ["ANONYMIZED_TELEMETRY"] = "False"
@@ -109,4 +109,4 @@ def retrieve_and_rerank(query, top_k=6):
         ]
 
     return scored_docs[:3]
-```
+    
