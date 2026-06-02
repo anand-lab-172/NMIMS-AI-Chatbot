@@ -1,9 +1,14 @@
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import (
+    Chroma
+)
+
+from langchain_community.embeddings import (
+    HuggingFaceEmbeddings
+)
 
 CHROMA_PATH = "chroma_db"
 
-# ---------------- EMBEDDING MODEL ---------------- #
+# ---------------- EMBEDDINGS ---------------- #
 
 embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
@@ -20,7 +25,7 @@ def get_vectorstore():
 
     return vectorstore
 
-# ---------------- RETRIEVE ---------------- #
+# ---------------- RETRIEVAL ---------------- #
 
 def retrieve_and_rerank(query):
 
@@ -37,26 +42,19 @@ def retrieve_and_rerank(query):
 
         for doc, score in docs:
 
-            # Convert distance → similarity
-
             similarity_score = 1 / (
                 1 + float(score)
             )
 
-            rerank_score = round(
-                similarity_score,
-                3
-            )
-
-            vector_score = round(
+            similarity_score = round(
                 similarity_score,
                 3
             )
 
             formatted_results.append(
                 (
-                    rerank_score,
-                    vector_score,
+                    similarity_score,
+                    similarity_score,
                     doc
                 )
             )
@@ -65,6 +63,8 @@ def retrieve_and_rerank(query):
 
     except Exception as e:
 
-        print(f"Retriever Error: {e}")
+        print(
+            f"Retriever Error: {e}"
+        )
 
         return []
