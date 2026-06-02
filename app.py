@@ -1,5 +1,6 @@
 import streamlit as st
-import time
+import time, os
+import subprocess
 
 if not os.path.exists("chroma_db"):
 
