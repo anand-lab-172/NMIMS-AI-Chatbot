@@ -160,35 +160,27 @@ def calculate_confidence(results, llm_score=None):
     if not results:
         return 0
 
-    rerank_scores = [
-        float(rerank_score)
-        for rerank_score, vector_score, doc in results
-    ]
+    try:
 
-    avg_score = sum(rerank_scores) / len(rerank_scores)
+        retrieval_confidence = 85
 
-    normalized = (avg_score + 10) / 20
+        if llm_score is not None:
 
-    retrieval_confidence = normalized * 100
+            final_confidence = (
+                retrieval_confidence * 0.4 +
+                llm_score * 0.6
+            )
 
-    retrieval_confidence = max(
-        45,
-        min(retrieval_confidence, 95)
-    )
+            return round(
+                min(final_confidence, 95),
+                2
+            )
 
-    if llm_score is not None:
+        return retrieval_confidence
 
-        final_confidence = (
-            retrieval_confidence * 0.4 +
-            llm_score * 0.6
-        )
+    except:
 
-        return round(
-            min(final_confidence, 95),
-            2
-        )
-
-    return round(retrieval_confidence, 2)
+        return 75
 
 # ---------------- LLM EVALUATOR ---------------- #
 
