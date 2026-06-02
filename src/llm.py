@@ -1,5 +1,4 @@
 import os
-import ollama
 
 from dotenv import load_dotenv
 
@@ -27,25 +26,13 @@ groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
-# ---------------- LOCAL LLM ---------------- #
+# ---------------- DEFAULT MODEL ---------------- #
 
-def ask_local_llm(prompt, model_name):
-
-    response = ollama.chat(
-        model=model_name,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
-
-    return response["message"]["content"]
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 
 # ---------------- GEMINI ---------------- #
 
-def ask_gemini(prompt, model_name):
+def ask_gemini(prompt, model_name="gemini-1.5-flash"):
 
     response = gemini_client.models.generate_content(
         model=model_name,
@@ -56,7 +43,7 @@ def ask_gemini(prompt, model_name):
 
 # ---------------- CHATGPT ---------------- #
 
-def ask_chatgpt(prompt, model_name):
+def ask_chatgpt(prompt, model_name="gpt-4o-mini"):
 
     response = openai_client.chat.completions.create(
         model=model_name,
@@ -73,7 +60,7 @@ def ask_chatgpt(prompt, model_name):
 
 # ---------------- GROQ ---------------- #
 
-def ask_groq(prompt, model_name):
+def ask_groq(prompt, model_name=DEFAULT_GROQ_MODEL):
 
     response = groq_client.chat.completions.create(
         model=model_name,
@@ -82,7 +69,8 @@ def ask_groq(prompt, model_name):
                 "role": "user",
                 "content": prompt
             }
-        ]
+        ],
+        temperature=0.2
     )
 
     return response.choices[0].message.content
